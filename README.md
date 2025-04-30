@@ -224,4 +224,4 @@ pnpm dev
 [mizhexiaoxiao/vue-fastapi-admin](https://github.com/mizhexiaoxiao/vue-fastapi-admin)
 [jaysonlong/webvideo-downloader](https://github.com/jaysonlong/webvideo-downloader)
 
-<img align="left" src = "https://profile-counter.glitch.me/vue-fastapi-admin/count.svg" alt="Loading">
+<img align="left" src = "https://profile-counter.glitch.me/webvideo-downloader-admin/count.svg" alt="Loading">
