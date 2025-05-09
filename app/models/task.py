@@ -1,3 +1,4 @@
+from datetime import datetime
 from email.policy import default
 
 from tortoise import fields
@@ -37,6 +38,11 @@ class Task(BaseModel, TimestampMixin):
         :return: 字典
         """
         data = {}
+        data["id"] = self.id
+        data["created_at"] = self.created_at.isoformat() if isinstance(self.created_at, datetime) else self.created_at
+        data["updated_at"] = self.updated_at.isoformat() if isinstance(self.updated_at, datetime) else self.updated_at
+        data["platform"] = self.platform_type.name
+
         data["platform_type"] = self.platform_type.value
         data["quality"] = self.quality
         data["totalSize"] = self.totalSize

@@ -60,40 +60,37 @@ onMounted(() => {
   getTreeSelect()
 })
 
-// 是否展示 "菜单类型"
-const showMenuType = ref(false)
-const menuOptions = ref([])
+// 是否展示 "平台类型"
+const showPlatformType = ref(false)
+const taskOptions = ref([])
 
 const columns = [
-  { title: 'ID', key: 'id', width: 50, ellipsis: { tooltip: true }, align: 'center' },
-  { title: '名称', key: 'fileName', width: 80, ellipsis: { tooltip: true }, align: 'center' },
+  { title: 'ID', key: 'id', width: 20, ellipsis: { tooltip: true }, align: 'center',hide: true },
+  { title: '名称', key: 'fileName', width: 100, ellipsis: { tooltip: true }, align: 'center' },
   {
     title: '平台',
-    key: 'platform_type',
-    width: 80,
+    key: 'platform',
+    width: 40,
     align: 'center',
     ellipsis: { tooltip: true },
     render(row) {
       let round = false
       let bordered = false
-      if (row.menu_type === 'catalog') {
-        bordered = true
-        round = false
-      } else if (row.menu_type === 'menu') {
-        bordered = false
-        round = true
-      }
       return h(
         NTag,
         { type: 'primary', round: round, bordered: bordered },
-        { default: () => (row.menu_type === 'catalog' ? '目录' : '菜单') }
+        { default: () => {
+            const platform = row.platform
+            return platform
+          }}
       )
     },
   },
-  { title: '画质', key: 'quality', width: 80, ellipsis: { tooltip: true }, align: 'center' },
-  { title: '大小', key: 'totalSize', width: 80, ellipsis: { tooltip: true }, align: 'center' },
-  { title: '速度', key: 'speed', width: 80, ellipsis: { tooltip: true }, align: 'center' },
-  { title: '进度', key: 'rate', width: 80, ellipsis: { tooltip: true }, align: 'center' },
+  { title: '分P', key: 'pRange', width: 30, ellipsis: { tooltip: true }, align: 'center' },
+  { title: '画质', key: 'quality', width: 40, ellipsis: { tooltip: true }, align: 'center' },
+  { title: '大小', key: 'totalSize', width: 40, ellipsis: { tooltip: true }, align: 'center' },
+  { title: '速度', key: 'speed', width: 40, ellipsis: { tooltip: true }, align: 'center' },
+  { title: '进度', key: 'rate', width: 40, ellipsis: { tooltip: true }, align: 'center' },
   {
     title: '状态',
     key: 'status',
@@ -103,9 +100,9 @@ const columns = [
       return h(TheIcon, { icon: row.icon, size: 20 })
     },
   },
-  { title: '排序', key: 'order', width: 40, ellipsis: { tooltip: true }, align: 'center' },
+  { title: '排序', key: 'order', width: 80, ellipsis: { tooltip: true }, align: 'center' },
   { title: '本地路径', key: 'path', width: 80, ellipsis: { tooltip: true }, align: 'center' },
-  { title: '下载URL', key: 'url', width: 80, ellipsis: { tooltip: true }, align: 'center' },
+  // { title: '下载URL', key: 'url', width: 80, ellipsis: { tooltip: true }, align: 'center', hide: true },
   {
     title: '操作',
     key: 'actions',
@@ -129,9 +126,9 @@ const columns = [
                 handleStart()
               },
             },
-            { default: () => '子菜单', icon: renderIcon('material-symbols:add', { size: 16 }) }
+            { default: () => '子视频', icon: renderIcon('material-symbols:add', { size: 16 }) }
           ),
-          [[vPermission, 'post/api/v1/menu/create']]
+          [[vPermission, 'post/api/v1/task/create']]
         ),
         withDirectives(
           h(
@@ -150,7 +147,7 @@ const columns = [
               icon: renderIcon('material-symbols:edit-outline', { size: 16 }),
             }
           ),
-          [[vPermission, 'post/api/v1/menu/update']]
+          [[vPermission, 'post/api/v1/task/update']]
         ),
         h(
           NPopconfirm,
@@ -173,7 +170,7 @@ const columns = [
                     icon: renderIcon('material-symbols:delete-outline', { size: 16 }),
                   }
                 ),
-                [[vPermission, 'delete/api/v1/menu/delete']]
+                [[vPermission, 'delete/api/v1/task/delete']]
               ),
             default: () => h('div', {}, '确定删除该菜单吗?'),
           }
@@ -204,10 +201,10 @@ async function handleStop(row) {
 
 
 async function getTreeSelect() {
-  const { data } = await api.getMenus()
-  const menu = { id: 0, name: '根目录', children: [] }
-  menu.children = data
-  menuOptions.value = [menu]
+  const { data } = await api.getTaskList()
+  const task = { id: 0, name: '根目录', children: [] }
+  task.children = data
+  taskOptions.value = [task]
 }
 </script>
 
@@ -242,7 +239,7 @@ async function getTreeSelect() {
       >
 
         <NFormItem label="" path="platform_type">
-          <NRadioGroup v-model:value="modalForm.menu_type">
+          <NRadioGroup v-model:value="modalForm.platform_type">
             <NRadio label="哔哩" value="bili" />
             <NRadio label="爱奇艺" value="iqiyi" />
             <NRadio label="腾讯" value="vqq" />
@@ -256,7 +253,7 @@ async function getTreeSelect() {
             v-model:value="modalForm.parent_id"
             key-field="id"
             label-field="name"
-            :options="menuOptions"
+            :options="taskOptions"
             default-expand-all="true"
           />
         </NFormItem>

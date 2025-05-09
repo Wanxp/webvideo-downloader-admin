@@ -158,9 +158,13 @@ class HttpAuditLogMiddleware(BaseHTTPMiddleware):
                     return
             data: dict = await self.get_request_log(request=request, response=response)
             data["response_time"] = process_time
-
             data["request_args"] = request.state.request_args
             data["response_body"] = await self.get_response_body(request, response)
+            if isinstance(data['response_body'], bytes):
+                try:
+                    data['response_body'] = {"data": data['response_body'].decode("utf-8")}
+                except json.JSONDecodeError:
+                    pass
             await AuditLog.create(**data)
 
         return response

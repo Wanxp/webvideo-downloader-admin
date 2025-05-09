@@ -1,7 +1,7 @@
 import logging
 
 from fastapi import APIRouter, Query
-
+from tortoise.expressions import Q
 from app.controllers.task import task_controller
 
 from app.schemas.base import Fail, Success, SuccessExtra
@@ -17,17 +17,30 @@ router = APIRouter()
 async def list_task(
     page: int = Query(1, description="页码"),
     page_size: int = Query(10, description="每页数量"),
+    fileName: str = Query("", description="文件名称"),
+    platform_type: str = Query("", description="平台类型"),
+    status: int = Query("", description="任务状态"),
 ):
     async def get_task_with_children(task_id: int):
         task = await task_controller.model.get(id=task_id)
-        task_dict = await task.to_dict()
+        task_dict = task.to_dict()
         child_tasks = await task_controller.model.filter(parent_id=task_id).order_by("order")
         task_dict["children"] = [await get_task_with_children(child.id) for child in child_tasks]
         return task_dict
 
-    parent_tasks = await task_controller.model.filter(parent_id=0).order_by("order")
+    q = Q()
+    q &= Q(parent_id=0)
+    if fileName:
+        q &= Q(fileName=fileName)
+    if platform_type:
+        q &= Q(platform_type=platform_type)
+    if status:
+        q &= Q(status=status)
+
+    total, parent_tasks = await task_controller.list(page=page, page_size=page_size, search=q, order=["order", "id"])
+
     res_task = [await get_task_with_children(task.id) for task in parent_tasks]
-    return SuccessExtra(data=res_task, total=len(res_task), page=page, page_size=page_size)
+    return SuccessExtra(data=res_task, total=total, page=page, page_size=page_size)
 
 
 @router.get("/get", summary="查看任务")

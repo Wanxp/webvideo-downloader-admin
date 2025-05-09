@@ -4,12 +4,13 @@ from fastapi import APIRouter, Request
 
 from app.controllers import task_controller
 from app.schemas.tasks import DownloadTaskCreate
+from fastapi.responses import PlainTextResponse
 
 # router = APIRouter()
 roott_router = APIRouter(tags=['下载任务'])
 
 # 兼容 webvideo-downloader 版本
-@roott_router.post(path="/", summary="新增下载任务")
+@roott_router.post(path="/", summary="新增下载任务", response_class=PlainTextResponse)
 async def create_download_task_for_local(
         request: Request
 ):
@@ -26,4 +27,3 @@ async def create_download_task_for_local(
     )
     await task_controller.handle_create_task(download_task_create)
     return "success"
-

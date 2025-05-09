@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from typing import Optional
 
@@ -16,6 +17,7 @@ class TaskController(CRUDBase[Task, TaskCreate, TaskUpdate]):
         return await self.model.filter(name=name).first()
 
     def build_task_create(self, download_task_create: DownloadTaskCreate) -> TaskCreate:
+        pRange = re.sub(r'\s+', '-', download_task_create.pRange.strip()) if download_task_create.pRange else None
         taskCreate = TaskCreate(
             platform_type=getPlatformType(download_task_create.linksurl),
             quality='',
@@ -30,7 +32,7 @@ class TaskController(CRUDBase[Task, TaskCreate, TaskUpdate]):
             total=1,
             handled=0,
             fileName=download_task_create.fileName,
-            pRange=download_task_create.pRange,
+            pRange=pRange,
             linksurl=download_task_create.linksurl,
             data=download_task_create.data,
             type=download_task_create.type
@@ -41,7 +43,40 @@ class TaskController(CRUDBase[Task, TaskCreate, TaskUpdate]):
         task_create = self.build_task_create(download_task_create)
         await self.create(obj_in=task_create)
         task = await self.model.filter(fileName=task_create.fileName).filter(order=task_create.order).first()
-        download_queue.put(task.to_dict())
+        await self.create_sub_task(task)
+        task=task.to_dict()
+        task['pRange']=task['pRange'].replace('-', ' ') if task['pRange'] else None
+        # download_queue.put(task.to_dict())
+
+    async def create_sub_task(self, task):
+        if task is None or task.pRange is None:
+            return
+        p = task.pRange.split('-')
+        if len(p) != 2:
+            return
+        start = int(p[0])
+        end = int(p[1])
+        for i in range(start, end + 1):
+            sub_task = TaskCreate(
+                platform_type=task.platform_type,
+                quality=task.quality,
+                totalSize=0,
+                speed=0,
+                rate=0,
+                status=StatusType.WATING,
+                order=task.order,
+                file_path=task.file_path,
+                parent_id=task.id,
+                total=1,
+                handled=0,
+                fileName=f"{task.fileName}_{i}",
+                pRange=f"{i}",
+                linksurl=task.linksurl,
+                data=task.data,
+                type=task.type
+            )
+            await self.create(obj_in=sub_task)
+
 
 
 task_controller = TaskController()
