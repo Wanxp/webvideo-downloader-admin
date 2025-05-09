@@ -27,6 +27,9 @@ from app.schemas.menus import MenuType
 from app.settings.config import settings
 
 from .middlewares import BackGroundTaskMiddleware, HttpAuditLogMiddleware
+from ..api.root.root_router import roott_router
+from ..downloader import download_queue
+from ..downloader.daemon import Runner
 
 
 def make_middlewares():
@@ -62,6 +65,7 @@ def register_exceptions(app: FastAPI):
 
 def register_routers(app: FastAPI, prefix: str = "/api"):
     app.include_router(api_router, prefix=prefix)
+    app.include_router(roott_router)
 
 
 async def init_superuser():
@@ -81,6 +85,77 @@ async def init_superuser():
 async def init_menus():
     menus = await Menu.exists()
     if not menus:
+        download_task_parent_menu = await Menu.create(
+            menu_type=MenuType.CATALOG,
+            name="下载任务",
+            path="/task",
+            order=1,
+            parent_id=0,
+            icon="carbon:gui-management",
+            is_hidden=False,
+            component="Layout",
+            keepalive=False,
+            redirect="/task/doing",
+        )
+        download_task_children_menu = [
+            Menu(
+                menu_type=MenuType.MENU,
+                name="全部",
+                path="all",
+                order=1,
+                parent_id=download_task_parent_menu.id,
+                icon="material-symbols:person-outline-rounded",
+                is_hidden=False,
+                component="/task/all",
+                keepalive=False,
+            ),
+            Menu(
+                menu_type=MenuType.MENU,
+                name="等待中",
+                path="waiting",
+                order=1,
+                parent_id=download_task_parent_menu.id,
+                icon="material-symbols:person-outline-rounded",
+                is_hidden=False,
+                component="/task/waiting",
+                keepalive=False,
+            ),
+            Menu(
+                menu_type=MenuType.MENU,
+                name="正运行",
+                path="doing",
+                order=1,
+                parent_id=download_task_parent_menu.id,
+                icon="material-symbols:person-outline-rounded",
+                is_hidden=False,
+                component="/task/doing",
+                keepalive=False,
+            ),
+            Menu(
+                menu_type=MenuType.MENU,
+                name="已完成",
+                path="done",
+                order=1,
+                parent_id=download_task_parent_menu.id,
+                icon="material-symbols:person-outline-rounded",
+                is_hidden=False,
+                component="/task/done",
+                keepalive=False,
+            ),
+            Menu(
+                menu_type=MenuType.MENU,
+                name="已停止",
+                path="stop",
+                order=1,
+                parent_id=download_task_parent_menu.id,
+                icon="material-symbols:person-outline-rounded",
+                is_hidden=False,
+                component="/task/stop",
+                keepalive=False,
+            ),
+        ]
+        await Menu.bulk_create(download_task_children_menu)
+
         parent_menu = await Menu.create(
             menu_type=MenuType.CATALOG,
             name="系统管理",
@@ -162,6 +237,8 @@ async def init_menus():
             ),
         ]
         await Menu.bulk_create(children_menu)
+
+
         await Menu.create(
             menu_type=MenuType.MENU,
             name="一级菜单",
@@ -224,6 +301,10 @@ async def init_roles():
         basic_apis = await Api.filter(Q(method__in=["GET"]) | Q(tags="基础模块"))
         await user_role.apis.add(*basic_apis)
 
+async def init_downloader():
+    q = download_queue
+    runner = Runner()
+    runner.start()
 
 async def init_data():
     await init_db()
@@ -231,3 +312,4 @@ async def init_data():
     await init_menus()
     await init_apis()
     await init_roles()
+    await init_downloader()

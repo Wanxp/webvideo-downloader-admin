@@ -35,6 +35,7 @@ def create_app() -> FastAPI:
     )
     register_exceptions(app)
     register_routers(app, prefix="/api")
+
     return app
 
 

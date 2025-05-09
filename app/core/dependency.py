@@ -4,8 +4,23 @@ import jwt
 from fastapi import Depends, Header, HTTPException, Request
 
 from app.core.ctx import CTX_USER_ID
-from app.models import Role, User
+from app.models import Role, User, DownloadClient
 from app.settings import settings
+
+class DownloadTaskTokenControl:
+    @classmethod
+    async def is_authed(cls, token: str = Header(..., description="DownloadTaskToken验证")) -> None:
+        try:
+            download_client = await DownloadClient.filter(id=1).first()
+            if not download_client:
+                raise HTTPException(status_code=401, detail="Authentication failed")
+            if download_client.token != token:
+                raise HTTPException(status_code=500, detail="无效的Token")
+            CTX_USER_ID.set(1)
+        except HTTPException as e:
+            raise e
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"{repr(e)}")
 
 
 class AuthControl:
@@ -48,6 +63,6 @@ class PermissionControl:
         if (method, path) not in permission_apis:
             raise HTTPException(status_code=403, detail=f"Permission denied method:{method} path:{path}")
 
-
+DependDownloadTaskAuth = Depends(DownloadTaskTokenControl.is_authed)
 DependAuth = Depends(AuthControl.is_authed)
 DependPermisson = Depends(PermissionControl.has_permission)

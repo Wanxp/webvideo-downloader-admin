@@ -1,0 +1,62 @@
+from email.policy import default
+
+from tortoise import fields
+
+from app.schemas.menus import MenuType
+
+from .base import BaseModel, TimestampMixin
+from ..schemas.tasks import PlatformType, StatusType
+
+
+class Task(BaseModel, TimestampMixin):
+    platform_type = fields.CharEnumField(PlatformType,  description="平台", index=True)
+    quality = fields.CharField(max_length=100, null=True, description="画质")
+    totalSize = fields.IntField(default=0, description="大小")
+    speed = fields.IntField(default=0, description="速度")
+    rate = fields.FloatField(default=0.0, description="进度")
+    status = fields.IntEnumField(StatusType,  description="状态", index=True)
+    order = fields.IntField(default=0, description="排序", index=True)
+    file_path = fields.CharField(max_length=20000, description="本地路径")
+    parent_id = fields.IntField(default=0, description="父菜单ID", index=True)
+    total = fields.IntField(default=1, description="总数量")
+    handled = fields.IntField(default=0, description="已处理数量")
+    fileName: str = fields.CharField(max_length=20000, description="文件名称", index=True)
+    pRange: str = fields.CharField(max_length=2000, description="P范围", null=True)
+    linksurl: str = fields.CharField(max_length=20000, description="关联地址", null=True)
+    data: str = fields.CharField(max_length=20000, description="数据信息", null=True)
+    type: str = fields.CharField(max_length=200, description="地址类型", null=True)
+
+    class Meta:
+        table = "task"
+
+    def to_dict(self, m2m: bool = False, exclude_fields: list[str] | None = None):
+        """
+        将模型转换为字典
+        :param m2m: 是否包含多对多关系
+        :param exclude_fields: 排除的字段
+        :return: 字典
+        """
+        data = {}
+        data["platform_type"] = self.platform_type.value
+        data["quality"] = self.quality
+        data["totalSize"] = self.totalSize
+        data["speed"] = self.speed
+        data["rate"] = self.rate
+        data["status"] = self.status.value
+        data["order"] = self.order
+        data["file_path"] = self.file_path
+        data["parent_id"] = self.parent_id
+        data["total"] = self.total
+        data["handled"] = self.handled
+        data["fileName"] = self.fileName
+        data["pRange"] = self.pRange
+        data["linksurl"] = self.linksurl
+        data["data"] = self.data
+        data["type"] = self.type
+        return data
+
+class DownloadClient(BaseModel, TimestampMixin):
+    name = fields.CharField(max_length=2000, description="名称", index=True)
+    token = fields.CharField(max_length=512, description="鉴权", index=True)
+    class Meta:
+        table = "download_client"

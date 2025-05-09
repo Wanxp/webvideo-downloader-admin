@@ -14,3 +14,4 @@ def get_password_hash(password: str) -> str:
 
 def generate_password() -> str:
     return pwd.genword()
+
