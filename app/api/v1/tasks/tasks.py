@@ -79,3 +79,9 @@ async def delete_task(
     return Success(msg="Deleted Success")
 
 
+@router.get("/load/video/info", summary="获取d下载信息")
+async def create_download_task(
+        linksurl: str,
+):
+    await task_controller.load_video_info(linksurl=linksurl)
+

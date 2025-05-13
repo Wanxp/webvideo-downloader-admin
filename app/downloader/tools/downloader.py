@@ -1,12 +1,15 @@
 # -*- coding:utf-8 -*-
+import asyncio
 import time
 import math
 from concurrent.futures import ThreadPoolExecutor
 from requests.exceptions import RequestException
 from . import utils
-
+from ...schemas.tasks import DispatchedTask
 
 CLIENT_CLOSE_EXCEPTION = Exception('Connection closed')
+
+
 
 # 自定义线程池
 class MyThreadPool(ThreadPoolExecutor):
@@ -54,9 +57,13 @@ class WebDownloader:
     chunkSize = 1024 * 30
     barLength = 40
 
-    def __init__(self, saveTempFile = False):
+    def __init__(self, extendInfo:DispatchedTask, fileName:str, saveTempFile = False):
         self.saveTempFile = saveTempFile
         self.threadPool = MyThreadPool()
+        self.speedThreadPool = MyThreadPool()
+
+        self.extendInfo = extendInfo
+        self.fileName = fileName
 
     def _reset(self, downloadFiles, totalSize, percent = None):
         self.downloadFiles = downloadFiles
@@ -68,9 +75,14 @@ class WebDownloader:
         self.startTime = time.time()
         self.failedSize = 0
         self.hasWarned = False
+    def speed(self):
+        self.history.append(self.currSize)
+        self.history.pop(0)
+        averSize = (self.history[-1] - self.history[0]) / (self.historySize - 1)
+        return int(averSize * 2)
 
     # 更新下载进度
-    def _updateProgress(self):
+    async def _updateProgress(self):
         if self.threadPool.exception or self.totalSize == 0:
             return
 
@@ -83,26 +95,36 @@ class WebDownloader:
         totalSize = utils.toMB(totalSize) if isinstance(totalSize, int) else totalSize
         progress = '%12s' % ('%s/%sMB' % (currSize, totalSize))
 
-        self.history.append(self.currSize)
-        self.history.pop(0)
-        averSize = (self.history[-1] - self.history[0]) / (self.historySize - 1)
-        speed = utils.formatSize(int(averSize * 2))
+        speed = utils.formatSize(self.speed())
         usedTime = utils.formatTime(time.time() - self.startTime)
 
         print("\r进度: \033[92m[%s]\033[0m %2d%% %s %6s/s %s  " % (
             barStr, percent, progress, speed, usedTime
         ), end='')
+        await self.updateDataInfo()
 
     # 非阻塞等待下载完成，并实时更新下载进度
-    def _waitUtilFinish(self):
+
+    async def ___waitUtilFinish(self):
+        print('___waitUtilFinish')
         while self.threadPool.isAlive():
             time.sleep(0.5)
-            self._updateProgress()
-        print() 
+            await self._updateProgress()
+        print()
+
+    def __waitUtilFinish(self):
+        loop = asyncio.new_event_loop()  # 创建一个新的事件循环
+        asyncio.set_event_loop(loop)  # 设置当前线程的事件循环
+        result = loop.run_until_complete(self.___waitUtilFinish())
+        print(result)
 
         if self.threadPool.exception:
             self.saveTempFile or utils.removeFiles(self.downloadFiles)
             raise self.threadPool.exception
+
+    def _waitUtilFinish(self):
+        self.speedThreadPool.reset(max_workers=1)
+        self.speedThreadPool.submit(self.__waitUtilFinish)
 
     # 通用下载，支持指定range
     def _downloadRange(self, url, fileName, headers, start = 0, end = None):
@@ -251,3 +273,12 @@ class WebDownloader:
         self.saveTempFile or utils.removeFiles(self.downloadFiles)
 
         print('Shutting down finished\n')
+
+    async def updateDataInfo(self):
+        from ...controllers.task import task_controller
+        try:
+            await task_controller.updateDataInfo(self)
+        except Exception as e:
+            print('更新数据失败', e)
+            self.shutdownAndClean()
+

@@ -62,22 +62,22 @@ class TaskCreate(BaseModel):
 
 class TaskUpdate(BaseModel):
     id: int
-    platform_type: Optional[PlatformType] = Field(example=PlatformType.BILI.value)
+    # platform_type: Optional[PlatformType] = Field(example=PlatformType.BILI.value)
     quality: Optional[str] = "1080p"
     totalSize: Optional[int] = 0
     speed: Optional[int] = 0
     rate: Optional[float] = 0.0
     status: StatusType = Field(example=StatusType.WATING)
-    parent_id: Optional[int] = Field(example=1)
+    # parent_id: Optional[int] = Field(example=1)
     file_path: str = Field(example="./我的文件")
-    order: int = Field(example=1)
+    # order: int = Field(example=1)
     total: int = Field(example=1)
     handled: int = Field(example=0)
     fileName: str = Field(example="我的文件")
-    pRange: Optional[str] = Field(example="1 2")
-    linksurl: str = Field(example="https://www.bilibili.com/video/BV1xE411D7nM")
-    data: str = Field(example="{}")
-    type: str = Field(example="link")
+    # pRange: Optional[str] = Field(example="1 2")
+    # linksurl: str = Field(example="https://www.bilibili.com/video/BV1xE411D7nM")
+    # data: str = Field(example="{}")
+    # type: str = Field(example="link")
 
 
 
@@ -87,3 +87,10 @@ class DownloadTaskCreate(BaseModel):
     linksurl: str = Field(example="https://www.bilibili.com/video/BV1xE411D7nM")
     data: str = Field(example="{}")
     type: str = Field(example="link")
+
+
+class DispatchedTask(object):
+    def __init__(self, id:int, pRange:str, isSubTask:bool = False):
+        self.id = id
+        self.pRange = pRange
+        self.isSubTask = isSubTask

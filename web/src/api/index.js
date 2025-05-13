@@ -41,5 +41,8 @@ export default {
   getAuditLogList: (params = {}) => request.get('/auditlog/list', { params }),
 
   getTaskList: (params = {}) => request.get('/task/list', { params }),
-
+  createTask: (data = {}) => request.post('/task/create', data),
+  updateTask: (data = {}) => request.post('/task/update', data),
+  deleteTask: (params = {}) => request.delete('/task/delete', { params }),
+  loadVideoInfo: (params = {}) => request.get('/download/task/load/video/info', { params }),
 }

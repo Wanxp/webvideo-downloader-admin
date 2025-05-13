@@ -30,10 +30,12 @@ const $table = ref(null)
 const queryItems = ref({})
 const vPermission = resolveDirective('permission')
 
+
+
 // 表单初始化内容
 const initForm = {
-  order: 1,
-  keepalive: true,
+  linksurl: '',
+  fileName: '',
 }
 
 const {
@@ -49,9 +51,9 @@ const {
 } = useCRUD({
   name: '下载',
   initForm,
-  doCreate: api.createMenu,
-  doDelete: api.deleteMenu,
-  doUpdate: api.updateMenu,
+  doCreate: api.createTask,
+  doDelete: api.deleteTask,
+  doUpdate: api.updateTask,
   refresh: () => $table.value?.handleSearch(),
 })
 
@@ -100,7 +102,7 @@ const columns = [
       return h(TheIcon, { icon: row.icon, size: 20 })
     },
   },
-  { title: '排序', key: 'order', width: 80, ellipsis: { tooltip: true }, align: 'center' },
+  // { title: '排序', key: 'order', width: 80, ellipsis: { tooltip: true }, align: 'center' },
   { title: '本地路径', key: 'path', width: 80, ellipsis: { tooltip: true }, align: 'center' },
   // { title: '下载URL', key: 'url', width: 80, ellipsis: { tooltip: true }, align: 'center', hide: true },
   {
@@ -118,7 +120,7 @@ const columns = [
               size: 'tiny',
               quaternary: true,
               type: 'primary',
-              style: `display: ${row.children && row.menu_type !== 'menu' ? '' : 'none'};`,
+              // style: `display: ${row.children && row.menu_type !== 'menu' ? '' : 'none'};`,
               onClick: () => {
                 initForm.parent_id = row.id
                 initForm.menu_type = 'menu'
@@ -172,7 +174,7 @@ const columns = [
                 ),
                 [[vPermission, 'delete/api/v1/task/delete']]
               ),
-            default: () => h('div', {}, '确定删除该菜单吗?'),
+            default: () => h('div', {}, '确定删除该任务吗?'),
           }
         ),
       ]
@@ -197,7 +199,21 @@ async function handleStop(row) {
   await api.updateMenu(row)
   row.publishing = false
   $message?.success(row.is_hidden ? '已隐藏' : '已取消隐藏')
+  }
+
+
+
+
+
+// 新增菜单(可选目录)
+async function handleClickAdd() {
+    initForm.parent_id = 0
+  initForm.platform_type = 'bili'
+  initForm.order = new Date().getTime() * 1000
+  showPlatformType.value = true
+  handleAdd()
 }
+
 
 
 async function getTreeSelect() {
@@ -206,11 +222,19 @@ async function getTreeSelect() {
   task.children = data
   taskOptions.value = [task]
 }
+
 </script>
 
 <template>
   <!-- 业务页面 -->
   <CommonPage show-footer title="下载列表">
+    <template #action>
+      <NButton v-permission="'post/api/v1/task/create'" type="primary" @click="handleClickAdd">
+        <TheIcon icon="material-symbols:add" :size="18" class="mr-5" />新建下载
+      </NButton>
+    </template>
+
+
     <!-- 表格 -->
     <CrudTable
       ref="$table"
@@ -222,12 +246,14 @@ async function getTreeSelect() {
     >
     </CrudTable>
 
+
+
     <!-- 新增/编辑/查看 弹窗 -->
     <CrudModal
       v-model:visible="modalVisible"
       :title="modalTitle"
       :loading="modalLoading"
-      @save="handleSave(getTreeSelect)"
+      @save="handleSave"
     >
       <!-- 表单 -->
       <NForm
@@ -237,46 +263,27 @@ async function getTreeSelect() {
         :label-width="80"
         :model="modalForm"
       >
-
-        <NFormItem label="" path="platform_type">
-          <NRadioGroup v-model:value="modalForm.platform_type">
-            <NRadio label="哔哩" value="bili" />
-            <NRadio label="爱奇艺" value="iqiyi" />
-            <NRadio label="腾讯" value="vqq" />
-            <NRadio label="芒果" value="mgtv" />
-            <NRadio label="WeTV" value="wetv" />
-            <NRadio label="爱奇艺(国际)" value="iq" />
-          </NRadioGroup>
-        </NFormItem>
-        <NFormItem label="上级菜单" path="parent_id">
-          <NTreeSelect
-            v-model:value="modalForm.parent_id"
-            key-field="id"
-            label-field="name"
-            :options="taskOptions"
-            default-expand-all="true"
-          />
+        <NFormItem
+          label="视频地址"
+          path="linksurl"
+          :rule="{
+            required: true,
+            message: '请输入视频油猴或暴力猴链接或本地m3u8路径',
+            trigger: ['blur'],
+          }"
+        >
+          <NInput v-model="modalForm.linksurl"  placeholder="请输入视频油猴或暴力猴链接或本地m3u8路径"/>
         </NFormItem>
         <NFormItem
-          label="名称"
+          label="文件名"
           path="fileName"
           :rule="{
             required: true,
-            message: '请输入唯一名称',
-            trigger: ['input', 'blur'],
+            message: '请输入文件名',
+            trigger: ['blur'],
           }"
         >
-          <NInput v-model:value="modalForm.fileName" placeholder="请输入唯一菜单名称" />
-        </NFormItem>
-        <NFormItem
-          label="画质"
-          path="quality"
-          :rule="{
-            required: true,
-            message: '请输入画质',
-            trigger: ['blur'],
-          }">
-          <NInput v-model:value="modalForm.quality" placeholder="请输入画质" />
+          <NInput v-model="modalForm.fileName"  placeholder="请输入文件名"/>
         </NFormItem>
       </NForm>
     </CrudModal>

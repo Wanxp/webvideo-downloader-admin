@@ -66,3 +66,13 @@ class DownloadClient(BaseModel, TimestampMixin):
     token = fields.CharField(max_length=512, description="鉴权", index=True)
     class Meta:
         table = "download_client"
+
+class TaskDownloadSpeed(BaseModel, TimestampMixin):
+    startTime = fields.DatetimeField(null=True, description="开始时间")
+    totalSize = fields.IntField(default=0, description="大小")
+    currentSize = fields.IntField(default=0, description="当前大小")
+    speed = fields.IntField(default=0, description="速度")
+    taskId = fields.IntField(default=0, description="任务ID", index=True)
+
+    class Meta:
+        table = "task"

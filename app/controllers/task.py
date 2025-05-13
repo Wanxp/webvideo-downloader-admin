@@ -5,6 +5,8 @@ from typing import Optional
 from app.core.crud import CRUDBase
 from app.downloader import download_queue
 from app.downloader.api import getPlatformType
+from app.downloader.tools import WebDownloader
+from app.log import logger
 from app.models.task import Task
 from app.schemas.tasks import TaskCreate, TaskUpdate, DownloadTaskCreate, StatusType
 
@@ -46,7 +48,7 @@ class TaskController(CRUDBase[Task, TaskCreate, TaskUpdate]):
         await self.create_sub_task(task)
         task=task.to_dict()
         task['pRange']=task['pRange'].replace('-', ' ') if task['pRange'] else None
-        # download_queue.put(task.to_dict())
+        download_queue.put(task)
 
     async def create_sub_task(self, task):
         if task is None or task.pRange is None:
@@ -76,6 +78,70 @@ class TaskController(CRUDBase[Task, TaskCreate, TaskUpdate]):
                 type=task.type
             )
             await self.create(obj_in=sub_task)
+
+    async def updateDataInfo(self, downloader:WebDownloader):
+        extendInfo = downloader.extendInfo
+        if extendInfo is None:
+            logger.warning(f"Downloader ExtendInfo is Empty")
+            return
+        if extendInfo.isSubTask is True:
+            task = await self.model.filter(parent_id=extendInfo.id).filter(pRange=extendInfo.pRange).first()
+            # task_parent = await self.model.filter(id=extendInfo.id).first()
+            # taskUpdate = TaskUpdate(
+            #     id=task.id,
+            #     quality=downloader.quality,
+            #     totalSize=downloader.totalSize,
+            #     speed=downloader.speed(),
+            #     rate=downloader.currSize,
+            #     status=StatusType.DOING,
+            #     file_path=downloader.fileName,
+            #     total=1,
+            #     handled=0
+            # )
+            # await self.update(obj_in=taskUpdate)
+        else:
+            task = await self.model.filter(id=extendInfo.id).first()
+        if task is None:
+            logger.warning(f"Downloader ExtendInfo can not match Info: {extendInfo}")
+            return
+        taskUpdate = TaskUpdate(
+            id=task.id,
+            # TODO 填充
+            quality='1080p',
+            totalSize=downloader.totalSize,
+            speed=downloader.speed(),
+            rate=downloader.currSize,
+            status=StatusType.DOING,
+            file_path=downloader.fileName,
+            total=1,
+            handled=0
+        )
+        await self.update(obj_in=taskUpdate)
+
+    async def load_video_info(linksurl:str) -> Optional[Task]:
+        downloader = WebDownloader(linksurl)
+        await downloader.load_video_info()
+        if downloader.extendInfo is None:
+            return None
+        task = TaskCreate(
+            platform_type=downloader.extendInfo.platformType,
+            quality=downloader.extendInfo.quality,
+            totalSize=downloader.extendInfo.totalSize,
+            speed=downloader.speed(),
+            rate=downloader.currSize,
+            status=StatusType.WATING,
+            order=int(datetime.now().timestamp()),
+            file_path=downloader.fileName,
+            parent_id=0,
+            total=1,
+            handled=0,
+            fileName=downloader.extendInfo.fileName,
+            pRange=None,
+            linksurl=linksurl,
+            data=None,
+            type=None
+        )
+        return task
 
 
 
