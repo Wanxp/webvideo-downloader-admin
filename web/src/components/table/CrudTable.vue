@@ -27,6 +27,10 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
+  showLoadingWhenQuery: {
+    type: Boolean,
+    default: true,
+  },
   /**
    * @remote 是否分页
    */
@@ -96,7 +100,7 @@ const pagination = reactive({
 
 async function handleQuery() {
   try {
-    loading.value = true
+    loading.value = props.showLoadingWhenQuery & true
     let paginationParams = {}
     // 如果非分页模式或者使用前端分页,则无需传分页参数
     if (props.isPagination && props.remote) {

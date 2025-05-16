@@ -22,12 +22,20 @@ class StatusType(IntEnum):
     STOP = 99  # 停止
     PAUSE = 199  # 暂停
 
+class UrlStatusType(IntEnum):
+    OK = 0  # 正常
+    ERROR = 1  # 错误
+    TIMEOUT = 2  # 超时
+    NOT_FOUND = 3  # 找不到
+    INVALID = 4  # 无效链接
+
 
 class BaseMenu(BaseModel):
     id: int
     platform_type: Optional[PlatformType]
     quality: Optional[str]
     totalSize: Optional[int]
+    currentSize: Optional[int]
     speed: Optional[int]
     rate: Optional[float]
     status: StatusType
@@ -41,11 +49,13 @@ class BaseMenu(BaseModel):
     linksurl: str
     data: str
     type: str
+    url_status: UrlStatusType
 
 class TaskCreate(BaseModel):
     platform_type: Optional[PlatformType] = Field(example=PlatformType.BILI.value)
     quality: Optional[str] = "1080p"
     totalSize: Optional[int] = 0
+    currentSize: Optional[int] = 0
     speed: Optional[int] = 0
     rate: Optional[float] = 0.0
     status: StatusType = Field(example=StatusType.WATING)
@@ -59,12 +69,14 @@ class TaskCreate(BaseModel):
     linksurl: str = Field(example="https://www.bilibili.com/video/BV1xE411D7nM")
     data: str = Field(example="{}")
     type: str = Field(example="link")
+    url_status: Optional[UrlStatusType] = Field(example=UrlStatusType.OK.value)
 
 class TaskUpdate(BaseModel):
     id: int
     # platform_type: Optional[PlatformType] = Field(example=PlatformType.BILI.value)
     quality: Optional[str] = "1080p"
     totalSize: Optional[int] = 0
+    currentSize: Optional[int] = 0
     speed: Optional[int] = 0
     rate: Optional[float] = 0.0
     status: StatusType = Field(example=StatusType.WATING)
@@ -78,6 +90,7 @@ class TaskUpdate(BaseModel):
     # linksurl: str = Field(example="https://www.bilibili.com/video/BV1xE411D7nM")
     # data: str = Field(example="{}")
     # type: str = Field(example="link")
+    url_status: Optional[UrlStatusType] = Field(example=UrlStatusType.OK.value)
 
 
 

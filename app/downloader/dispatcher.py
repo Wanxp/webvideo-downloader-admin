@@ -1,4 +1,5 @@
 # -*- coding:utf-8 -*-
+import asyncio
 import os
 import traceback
 from app.downloader.tools import utils as tools
@@ -8,6 +9,7 @@ from app.schemas.tasks import DispatchedTask
 
 
 class TaskDispatcher:
+
     
     def __init__(self):
         self.saveTempFile = config.saveTempFile
@@ -55,6 +57,7 @@ class TaskDispatcher:
             self.fragThreadCnt, self.fragmentCnt)
         downloader.multiThreadDownloadAll(videoUrls, videoNames, headers, \
             self.fragThreadCnt, self.fragmentCnt)
+
         tools.mergeAudio2Video(audioNames, videoNames, targetFileName)
 
         self.saveTempFile or tools.removeFiles(audioNames + videoNames)
@@ -138,7 +141,7 @@ class TaskDispatcher:
         if subtitles:
             print('匹配到%d个字幕，开始下载' % len(subtitles))
             targetFileName = self.handleSubtitles(subtitles, fileName, targetFileName, downloader, headers)
-
+        downloader.downloadComplete()
         print('Finish: %s\n' % targetFileName)
 
 
@@ -154,7 +157,7 @@ class TaskDispatcher:
             print('开始下载第%dP: %s' % (p, fileName))
             self.download(videoUrl, fileName, DispatchedTask(extendInfo.id, f'{p}', isSubTask=True))
 
-    def dispatch(self, **task):
+    def dispatch(self, throw_error:bool = False, **task):
         self.task = task
         task['type'] = task.get('type', 'link')
         print()
@@ -171,6 +174,8 @@ class TaskDispatcher:
             elif task['type'] == 'stream':
                 self.handleStream(enxtendInfo, *task)
         except Exception as e:
+            if throw_error is True:
+                raise e
             print('-' * 100)
             traceback.print_exc()
             print('-' * 100)

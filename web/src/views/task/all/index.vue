@@ -23,14 +23,15 @@ import TheIcon from '@/components/icon/TheIcon.vue'
 import { formatDate, renderIcon } from '@/utils'
 import { useCRUD } from '@/composables'
 import api from '@/api'
+import {toMB, toMBSpeed} from "@/utils/common/netUtil";
 
 defineOptions({ name: '下载管理' })
 
 const $table = ref(null)
 const queryItems = ref({})
 const vPermission = resolveDirective('permission')
-
-
+const timeout = ref(2000)
+const errorTimes = ref(2)
 
 // 表单初始化内容
 const initForm = {
@@ -60,6 +61,10 @@ const {
 onMounted(() => {
   $table.value?.handleSearch()
   getTreeSelect()
+  //每秒刷新一次
+  setInterval(() => {
+    $table.value?.handleSearch()
+  }, timeout.value)
 })
 
 // 是否展示 "平台类型"
@@ -90,20 +95,81 @@ const columns = [
   },
   { title: '分P', key: 'pRange', width: 30, ellipsis: { tooltip: true }, align: 'center' },
   { title: '画质', key: 'quality', width: 40, ellipsis: { tooltip: true }, align: 'center' },
-  { title: '大小', key: 'totalSize', width: 40, ellipsis: { tooltip: true }, align: 'center' },
-  { title: '速度', key: 'speed', width: 40, ellipsis: { tooltip: true }, align: 'center' },
-  { title: '进度', key: 'rate', width: 40, ellipsis: { tooltip: true }, align: 'center' },
+  { title: '大小', key: 'totalSize', width: 40, ellipsis: { tooltip: true }, align: 'center',
+  render(row) {
+    return toMB(row.totalSize)
+  }},
+  { title: '速度', key: 'speed', width: 40, ellipsis: { tooltip: true }, align: 'center',render(row) {
+    const currentTime = new Date().getTime();
+    const updatedTime = new Date(row.updated_at).getTime();
+    if (currentTime - updatedTime > errorTimes.value * timeout.value) {
+      return '0 MB/s';
+    }
+    return toMBSpeed(row.speed);    }
+  },
+  { title: '进度', key: 'rate', width: 40, ellipsis: { tooltip: true }, align: 'center',
+  render(row) {
+    return row.rate >= 0.99 ? '100%' : (row.rate * 100).toFixed(2) + '%' ;
+  }},
   {
     title: '状态',
     key: 'status',
     width: 40,
     align: 'center',
     render(row) {
-      return h(TheIcon, { icon: row.icon, size: 20 })
+      const currentTime = new Date().getTime();
+      const updatedTime = new Date(row.updated_at).getTime();
+      let type = 'primary'
+      let statusName = ''
+      if (currentTime - updatedTime > errorTimes.value * timeout.value) {
+          type = 'error'
+          statusName = '异常'
+      }else {
+        const status = row.status
+        switch (status) {
+          case 10:
+            type = 'info'
+            statusName = '等待下载'
+            break
+          case 20:
+            type = 'success'
+            statusName = '下载中'
+            break
+          case 30:
+            type = 'warning'
+            statusName = '合并中'
+            break
+          case 40:
+            type = 'success'
+            statusName = '下载完成'
+            break
+          case 99:
+            type = 'error'
+            statusName = '停止'
+            break
+          case 199:
+            type = 'error'
+            statusName = '暂停'
+            break
+          default:
+            statusName = ''
+            break
+        }
+      }
+      let round = false
+      let bordered = false
+      return h(
+        NTag,
+        { type: type, round: round, bordered: bordered },
+        { default: () => {
+           return statusName
+
+          }}
+      )
     },
   },
   // { title: '排序', key: 'order', width: 80, ellipsis: { tooltip: true }, align: 'center' },
-  { title: '本地路径', key: 'path', width: 80, ellipsis: { tooltip: true }, align: 'center' },
+  { title: '本地路径', key: 'filePath', width: 80, ellipsis: { tooltip: true }, align: 'center' },
   // { title: '下载URL', key: 'url', width: 80, ellipsis: { tooltip: true }, align: 'center', hide: true },
   {
     title: '操作',
@@ -114,41 +180,61 @@ const columns = [
     render(row) {
       return [
         withDirectives(
-          h(
-            NButton,
-            {
-              size: 'tiny',
-              quaternary: true,
-              type: 'primary',
-              // style: `display: ${row.children && row.menu_type !== 'menu' ? '' : 'none'};`,
-              onClick: () => {
-                initForm.parent_id = row.id
-                initForm.menu_type = 'menu'
-                showMenuType.value = false
-                handleStart()
-              },
-            },
-            { default: () => '子视频', icon: renderIcon('material-symbols:add', { size: 16 }) }
-          ),
+        h(
+              NPopconfirm,
+          {
+            onPositiveClick: () => handleRedownload({ id: row.id }),
+          },
+          {
+            trigger: () =>
+              withDirectives(
+                h(
+                  NButton,
+                  {
+                    size: 'tiny',
+                    quaternary: true,
+                    type: 'info',
+                    style: `display: ${row.children && row.children.length > 0 ? 'none' : ''};`, //有子菜单不允许删除
+                  },
+                  {
+                    default: () => '重新下载',
+                    icon: renderIcon('material-symbols:replay', { size: 16 }),
+                  }
+                ),
+                [[vPermission, 'delete/api/v1/task/activate/redownload']]
+              ),
+            default: () => h('div', {}, '确定重新下载该任务吗?'),
+          }
+        ),
           [[vPermission, 'post/api/v1/task/create']]
         ),
         withDirectives(
           h(
-            NButton,
-            {
-              size: 'tiny',
-              quaternary: true,
-              type: 'info',
-              onClick: () => {
-                showMenuType.value = false
-                handleStop(row)
-              },
-            },
-            {
-              default: () => '编辑',
-              icon: renderIcon('material-symbols:edit-outline', { size: 16 }),
-            }
-          ),
+              NPopconfirm,
+          {
+            onPositiveClick: () => handleRedownload({ id: row.id }),
+          },
+          {
+            trigger: () =>
+              withDirectives(
+                h(
+                  NButton,
+                  {
+                    size: 'tiny',
+                    quaternary: true,
+                    type: 'info',
+                    style: `display: ${row.children && row.children.length > 0 ? 'none' : ''};`, //有子菜单不允许删除
+                  },
+                  {
+                    default: () => '停止',
+                    icon: renderIcon('material-symbols:stop', { size: 16 }),
+                  }
+                ),
+                [[vPermission, 'delete/api/v1/task/stop']]
+              ),
+            default: () => h('div', {}, '确定停止该任务吗?停止后将无法继续下载,需要重新下载!'),
+          }
+        ),
           [[vPermission, 'post/api/v1/task/update']]
         ),
         h(
@@ -165,7 +251,6 @@ const columns = [
                     size: 'tiny',
                     quaternary: true,
                     type: 'error',
-                    style: `display: ${row.children && row.children.length > 0 ? 'none' : ''};`, //有子菜单不允许删除
                   },
                   {
                     default: () => '删除',
@@ -192,14 +277,17 @@ async function handleStart(row) {
 }
 
 // 修改是否隐藏
-async function handleStop(row) {
-  if (!row.id) return
-  row.publishing = true
-  row.is_hidden = row.is_hidden === false ? true : false
-  await api.updateMenu(row)
-  row.publishing = false
-  $message?.success(row.is_hidden ? '已隐藏' : '已取消隐藏')
-  }
+async function handleRedownload(params) {
+    try {
+      modalLoading.value = true
+      const data = await api.activateRedownload(params)
+      $message.success('开始成功')
+      modalLoading.value = false
+      refresh(data)
+    } catch (error) {
+      modalLoading.value = false
+    }
+}
 
 
 
@@ -243,6 +331,7 @@ async function getTreeSelect() {
       :columns="columns"
       :get-data="api.getTaskList"
       :single-line="true"
+      :show-loading-when-query="false"
     >
     </CrudTable>
 

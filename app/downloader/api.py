@@ -3,6 +3,7 @@ import re
 import json
 from urllib.parse import unquote
 import app.downloader.tools.utils as tools
+from app.downloader.tools import utils
 from app.schemas.tasks import PlatformType
 from app.downloader.tools.utils import XMLUtils
 
@@ -108,6 +109,14 @@ def parseIqiyiUrl(url, realData, headers = {}):
         basePath = data['data']['dstl']
         subtitles = [ (srt.get('_name', 'default'), basePath + srt['srt']) for srt in srts ]
     return videoType, audioUrls, videoUrls, subtitles
+
+# 解析油猴链接，返回解析后的url和所需请求头
+def testLinksUrl(url, realData = None):
+    videoType, headers, audioUrls, videoUrls, subtitles = parseSingleUrl(url, realData)
+    response = utils.request("OPTIONS", url, headers=headers)
+    if response.status_code == 200:
+        return True
+    return False
 
 
 # 解析油猴链接，返回解析后的url和所需请求头

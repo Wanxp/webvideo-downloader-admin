@@ -6,13 +6,14 @@ from tortoise import fields
 from app.schemas.menus import MenuType
 
 from .base import BaseModel, TimestampMixin
-from ..schemas.tasks import PlatformType, StatusType
+from ..schemas.tasks import PlatformType, StatusType, UrlStatusType
 
 
 class Task(BaseModel, TimestampMixin):
     platform_type = fields.CharEnumField(PlatformType,  description="平台", index=True)
     quality = fields.CharField(max_length=100, null=True, description="画质")
     totalSize = fields.IntField(default=0, description="大小")
+    currentSize= fields.IntField(default=0, description="当前大小")
     speed = fields.IntField(default=0, description="速度")
     rate = fields.FloatField(default=0.0, description="进度")
     status = fields.IntEnumField(StatusType,  description="状态", index=True)
@@ -26,9 +27,11 @@ class Task(BaseModel, TimestampMixin):
     linksurl: str = fields.CharField(max_length=20000, description="关联地址", null=True)
     data: str = fields.CharField(max_length=20000, description="数据信息", null=True)
     type: str = fields.CharField(max_length=200, description="地址类型", null=True)
-
+    url_status = fields.IntEnumField(UrlStatusType, description="地址状态", null=True)
     class Meta:
         table = "task"
+
+
 
     def to_dict(self, m2m: bool = False, exclude_fields: list[str] | None = None):
         """
@@ -46,6 +49,7 @@ class Task(BaseModel, TimestampMixin):
         data["platform_type"] = self.platform_type.value
         data["quality"] = self.quality
         data["totalSize"] = self.totalSize
+        data["currentSize"] = self.currentSize
         data["speed"] = self.speed
         data["rate"] = self.rate
         data["status"] = self.status.value
@@ -59,6 +63,7 @@ class Task(BaseModel, TimestampMixin):
         data["linksurl"] = self.linksurl
         data["data"] = self.data
         data["type"] = self.type
+        data["url_status"] = self.url_status.value if self.url_status else None
         return data
 
 class DownloadClient(BaseModel, TimestampMixin):

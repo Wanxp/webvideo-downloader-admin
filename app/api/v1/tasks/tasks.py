@@ -72,10 +72,11 @@ async def update_task(
 async def delete_task(
     id: int = Query(..., description="任务id"),
 ):
-    child_task_count = await task_controller.model.filter(parent_id=id).count()
-    if child_task_count > 0:
-        return Fail(msg="Cannot delete a task with child tasks")
-    await task_controller.remove(id=id)
+    child_task = await task_controller.model.filter(parent_id=id)
+    ids = [task.id for task in child_task]
+    ids.append(id)
+    await task_controller.stop(ids)
+    await task_controller.model.filter(Q(parent_id=id) | Q(id=id)).delete()
     return Success(msg="Deleted Success")
 
 
@@ -85,3 +86,10 @@ async def create_download_task(
 ):
     await task_controller.load_video_info(linksurl=linksurl)
 
+
+@router.put("/activate/redownload", summary="重新下载")
+async def create_download_task(
+    id: int = Query(..., description="任务id"),
+):
+    msg = await task_controller.redownload(id=id)
+    return Success(msg=msg)

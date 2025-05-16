@@ -45,4 +45,5 @@ export default {
   updateTask: (data = {}) => request.post('/task/update', data),
   deleteTask: (params = {}) => request.delete('/task/delete', { params }),
   loadVideoInfo: (params = {}) => request.get('/download/task/load/video/info', { params }),
+  activateRedownload: (params = {}) => request.put(`/task/activate/redownload?id=${params.id}`),
 }

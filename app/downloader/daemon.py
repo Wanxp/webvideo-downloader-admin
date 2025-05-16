@@ -17,6 +17,8 @@ class DownloadQueue:
     taskQueue = queue.Queue()
 
     def put(self, task):
+        task=task.to_dict()
+        task['pRange']=task['pRange'].replace('-', ' ') if task['pRange'] else None
         self.taskQueue.put(task)
 
     def new_client(self, client):

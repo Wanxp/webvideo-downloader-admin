@@ -1,5 +1,6 @@
 # -*- coding:utf-8 -*-
 import asyncio
+import threading
 import time
 import math
 from concurrent.futures import ThreadPoolExecutor
@@ -60,7 +61,7 @@ class WebDownloader:
     def __init__(self, extendInfo:DispatchedTask, fileName:str, saveTempFile = False):
         self.saveTempFile = saveTempFile
         self.threadPool = MyThreadPool()
-        self.speedThreadPool = MyThreadPool()
+        # self.speedThreadPool = MyThreadPool()
 
         self.extendInfo = extendInfo
         self.fileName = fileName
@@ -82,7 +83,7 @@ class WebDownloader:
         return int(averSize * 2)
 
     # 更新下载进度
-    async def _updateProgress(self):
+    def _updateProgress(self):
         if self.threadPool.exception or self.totalSize == 0:
             return
 
@@ -101,35 +102,22 @@ class WebDownloader:
         print("\r进度: \033[92m[%s]\033[0m %2d%% %s %6s/s %s  " % (
             barStr, percent, progress, speed, usedTime
         ), end='')
-        await self.updateDataInfo()
+        self.updateDataInfo()
 
     # 非阻塞等待下载完成，并实时更新下载进度
-
-    async def ___waitUtilFinish(self):
-        print('___waitUtilFinish')
+    def _waitUtilFinish(self):
         while self.threadPool.isAlive():
             time.sleep(0.5)
-            await self._updateProgress()
+            self._updateProgress()
         print()
-
-    def __waitUtilFinish(self):
-        loop = asyncio.new_event_loop()  # 创建一个新的事件循环
-        asyncio.set_event_loop(loop)  # 设置当前线程的事件循环
-        result = loop.run_until_complete(self.___waitUtilFinish())
-        print(result)
-
         if self.threadPool.exception:
             self.saveTempFile or utils.removeFiles(self.downloadFiles)
             raise self.threadPool.exception
 
-    def _waitUtilFinish(self):
-        self.speedThreadPool.reset(max_workers=1)
-        self.speedThreadPool.submit(self.__waitUtilFinish)
-
     # 通用下载，支持指定range
     def _downloadRange(self, url, fileName, headers, start = 0, end = None):
         utils.touchIfNotExists(fileName)
-
+        print(fileName)
         with open(fileName, 'rb+') as f:
             f.seek(start)
             headers = headers.copy()
@@ -274,7 +262,15 @@ class WebDownloader:
 
         print('Shutting down finished\n')
 
-    async def updateDataInfo(self):
+    def updateDataInfo(self):
+        # result = loop.run_until_complete()
+        threading.Thread(target=self._updateDataInfo).start()
+
+        if self.threadPool.exception:
+            self.saveTempFile or utils.removeFiles(self.downloadFiles)
+            raise self.threadPool.exception
+
+    async def _updateDataInfo(self):
         from ...controllers.task import task_controller
         try:
             await task_controller.updateDataInfo(self)
@@ -282,3 +278,16 @@ class WebDownloader:
             print('更新数据失败', e)
             self.shutdownAndClean()
 
+    def downloadComplete(self):
+        loop = asyncio.new_event_loop()  # 创建一个新的事件循环
+        asyncio.set_event_loop(loop)  # 设置当前线程的事件循环
+        result = loop.run_until_complete(self._downloadComplete())
+        print(result)
+
+    async def _downloadComplete(self):
+        from ...controllers.task import task_controller
+        try:
+            await task_controller.downloadComplete(self)
+        except Exception as e:
+            print('更新数据失败', e)
+            self.shutdownAndClean()
