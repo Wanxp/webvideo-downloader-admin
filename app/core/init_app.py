@@ -28,8 +28,10 @@ from app.settings.config import settings
 
 from .middlewares import BackGroundTaskMiddleware, HttpAuditLogMiddleware
 from ..api.root.root_router import roott_router
-from ..downloader import download_queue
+from ..controllers.sys_conf import sys_conf_controller
+from ..downloader import download_queue, config
 from ..downloader.daemon import Runner
+from ..schemas.sys_conf import SysConfCreate
 
 
 def make_middlewares():
@@ -91,7 +93,7 @@ async def init_menus():
             path="/task",
             order=1,
             parent_id=0,
-            icon="carbon:gui-management",
+            icon="carbon:cloud-download",
             is_hidden=False,
             component="Layout",
             keepalive=False,
@@ -104,7 +106,7 @@ async def init_menus():
                 path="all",
                 order=1,
                 parent_id=download_task_parent_menu.id,
-                icon="material-symbols:person-outline-rounded",
+                icon="material-symbols:all-inclusive",
                 is_hidden=False,
                 component="/task/all",
                 keepalive=False,
@@ -115,7 +117,7 @@ async def init_menus():
                 path="waiting",
                 order=1,
                 parent_id=download_task_parent_menu.id,
-                icon="material-symbols:person-outline-rounded",
+                icon="material-symbols:pending-actions",
                 is_hidden=False,
                 component="/task/waiting",
                 keepalive=False,
@@ -126,7 +128,7 @@ async def init_menus():
                 path="doing",
                 order=1,
                 parent_id=download_task_parent_menu.id,
-                icon="material-symbols:person-outline-rounded",
+                icon="material-symbols:clock-loader-60",
                 is_hidden=False,
                 component="/task/doing",
                 keepalive=False,
@@ -137,7 +139,7 @@ async def init_menus():
                 path="done",
                 order=1,
                 parent_id=download_task_parent_menu.id,
-                icon="material-symbols:person-outline-rounded",
+                icon="material-symbols:inventory",
                 is_hidden=False,
                 component="/task/done",
                 keepalive=False,
@@ -148,7 +150,7 @@ async def init_menus():
                 path="stop",
                 order=1,
                 parent_id=download_task_parent_menu.id,
-                icon="material-symbols:person-outline-rounded",
+                icon="material-symbols:do-not-disturb-on",
                 is_hidden=False,
                 component="/task/stop",
                 keepalive=False,
@@ -171,6 +173,17 @@ async def init_menus():
         children_menu = [
             Menu(
                 menu_type=MenuType.MENU,
+                name="系统配置",
+                path="sys_conf",
+                order=1,
+                parent_id=parent_menu.id,
+                icon="material-symbols:settings",
+                is_hidden=False,
+                component="/system/sys_conf",
+                keepalive=False,
+            ),
+            Menu(
+                menu_type=MenuType.MENU,
                 name="用户管理",
                 path="user",
                 order=1,
@@ -180,61 +193,61 @@ async def init_menus():
                 component="/system/user",
                 keepalive=False,
             ),
-            Menu(
-                menu_type=MenuType.MENU,
-                name="角色管理",
-                path="role",
-                order=2,
-                parent_id=parent_menu.id,
-                icon="carbon:user-role",
-                is_hidden=False,
-                component="/system/role",
-                keepalive=False,
-            ),
-            Menu(
-                menu_type=MenuType.MENU,
-                name="菜单管理",
-                path="menu",
-                order=3,
-                parent_id=parent_menu.id,
-                icon="material-symbols:list-alt-outline",
-                is_hidden=False,
-                component="/system/menu",
-                keepalive=False,
-            ),
-            Menu(
-                menu_type=MenuType.MENU,
-                name="API管理",
-                path="api",
-                order=4,
-                parent_id=parent_menu.id,
-                icon="ant-design:api-outlined",
-                is_hidden=False,
-                component="/system/api",
-                keepalive=False,
-            ),
-            Menu(
-                menu_type=MenuType.MENU,
-                name="部门管理",
-                path="dept",
-                order=5,
-                parent_id=parent_menu.id,
-                icon="mingcute:department-line",
-                is_hidden=False,
-                component="/system/dept",
-                keepalive=False,
-            ),
-            Menu(
-                menu_type=MenuType.MENU,
-                name="审计日志",
-                path="auditlog",
-                order=6,
-                parent_id=parent_menu.id,
-                icon="ph:clipboard-text-bold",
-                is_hidden=False,
-                component="/system/auditlog",
-                keepalive=False,
-            ),
+            # Menu(
+            #     menu_type=MenuType.MENU,
+            #     name="角色管理",
+            #     path="role",
+            #     order=2,
+            #     parent_id=parent_menu.id,
+            #     icon="carbon:user-role",
+            #     is_hidden=True,
+            #     component="/system/role",
+            #     keepalive=False,
+            # ),
+            # Menu(
+            #     menu_type=MenuType.MENU,
+            #     name="菜单管理",
+            #     path="menu",
+            #     order=3,
+            #     parent_id=parent_menu.id,
+            #     icon="material-symbols:list-alt-outline",
+            #     is_hidden=True,
+            #     component="/system/menu",
+            #     keepalive=False,
+            # ),
+            # Menu(
+            #     menu_type=MenuType.MENU,
+            #     name="API管理",
+            #     path="api",
+            #     order=4,
+            #     parent_id=parent_menu.id,
+            #     icon="ant-design:api-outlined",
+            #     is_hidden=True,
+            #     component="/system/api",
+            #     keepalive=False,
+            # ),
+            # Menu(
+            #     menu_type=MenuType.MENU,
+            #     name="部门管理",
+            #     path="dept",
+            #     order=5,
+            #     parent_id=parent_menu.id,
+            #     icon="mingcute:department-line",
+            #     is_hidden=True,
+            #     component="/system/dept",
+            #     keepalive=False,
+            # ),
+            # Menu(
+            #     menu_type=MenuType.MENU,
+            #     name="审计日志",
+            #     path="auditlog",
+            #     order=6,
+            #     parent_id=parent_menu.id,
+            #     icon="ph:clipboard-text-bold",
+            #     is_hidden=True,
+            #     component="/system/auditlog",
+            #     keepalive=False,
+            # ),
         ]
         await Menu.bulk_create(children_menu)
 
@@ -306,10 +319,20 @@ async def init_downloader():
     runner = Runner()
     runner.start()
 
+
+async def init_confs():
+    count = sys_conf_controller.model.exists()
+    if not count:
+        await sys_conf_controller.create(obj_in=SysConfCreate(
+            filePath=config.videoFilePath
+        ))
+
+
 async def init_data():
     await init_db()
     await init_superuser()
     await init_menus()
     await init_apis()
     await init_roles()
+    await init_confs()
     await init_downloader()

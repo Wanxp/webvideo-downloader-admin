@@ -46,4 +46,7 @@ export default {
   deleteTask: (params = {}) => request.delete('/task/delete', { params }),
   loadVideoInfo: (params = {}) => request.get('/download/task/load/video/info', { params }),
   activateRedownload: (params = {}) => request.put(`/task/activate/redownload?id=${params.id}`),
+
+  getSysConf: (params = {}) => request.get(`/sys_conf/get`, { params }),
+  updateSysConf: (data = {}) => request.post(`/sys_conf/update`, data),
 }

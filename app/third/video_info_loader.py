@@ -32,7 +32,7 @@ class VideoInfoLoader:
         self.video_info = None
 
     def load_video_info(self):
-
+        pass
 
 
     def get_video_info(self):

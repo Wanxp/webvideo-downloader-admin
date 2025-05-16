@@ -8,6 +8,7 @@ from .base import base_router
 from .depts import depts_router
 from .menus import menus_router
 from .roles import roles_router
+from .sys_confs import confs_router
 from .tasks import tasks_router
 from .download_client import download_client_router
 from .download_task import download_task_router
@@ -27,3 +28,4 @@ v1_router.include_router(download_task_router, prefix="/download/task", dependen
 v1_router.include_router(apis_router, prefix="/api", dependencies=[DependPermisson])
 v1_router.include_router(depts_router, prefix="/dept", dependencies=[DependPermisson])
 v1_router.include_router(auditlog_router, prefix="/auditlog", dependencies=[DependPermisson])
+v1_router.include_router(confs_router, prefix="/sys_conf", dependencies=[DependPermisson])

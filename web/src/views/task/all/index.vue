@@ -121,7 +121,10 @@ const columns = [
       const updatedTime = new Date(row.updated_at).getTime();
       let type = 'primary'
       let statusName = ''
-      if (currentTime - updatedTime > errorTimes.value * timeout.value) {
+      if (row.rate > 0.9999) {
+        type = 'success'
+        statusName = '下载完成'
+      }else if (currentTime - updatedTime > errorTimes.value * timeout.value) {
           type = 'error'
           statusName = '异常'
       }else {

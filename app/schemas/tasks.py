@@ -30,7 +30,7 @@ class UrlStatusType(IntEnum):
     INVALID = 4  # 无效链接
 
 
-class BaseMenu(BaseModel):
+class BaseTask(BaseModel):
     id: int
     platform_type: Optional[PlatformType]
     quality: Optional[str]

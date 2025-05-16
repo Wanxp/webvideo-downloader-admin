@@ -80,4 +80,4 @@ class TaskDownloadSpeed(BaseModel, TimestampMixin):
     taskId = fields.IntField(default=0, description="任务ID", index=True)
 
     class Meta:
-        table = "task"
+        table = "task_speed"
